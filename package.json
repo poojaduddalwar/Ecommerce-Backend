@@ -4,8 +4,8 @@
   "description": "API server for our ecommerce application",
   "main": "server.js",
   "scripts": {
-    "dev":"nodemon -w src --exec \"babel-node src\"",
-    "build":"babel src --out-dir dist"
+    "dev": "nodemon -w src --exec \"babel-node src\"",
+    "build": "babel src --out-dir dist"
   },
   "repository": {
     "type": "git",
