@@ -3,6 +3,8 @@ import User from "../services/mongodb/models/User";
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import isAdmin from "../middlewares/isAdmin";
+import { body, validationResult } from "express-validator";
+//the body gives access to the body
 
 const router = express.Router()
 
@@ -13,19 +15,15 @@ query - params : none
 isProtected : true (admin can access this )
 */
 
-//this is just a route that gets all of the users for you.
-//this is going to be a route for admin user so that he/she can take look at all the users that have signed up 
 router.get('/users', isAdmin, async (req, res) => {
     try {
         const users = await User.find({})
-        res.json({ users })
+        res.status(200).json({ users, message: "Successfully  fetched users" })
     } catch (error) {
         console.log(error.message)
-        res.status(500).json({ users: [] })
+        res.status(500).json({ users: [], message: "Error fetching users" })
     }
 })
-//if the api request fails for some reason we'll send an empty array
-
 
 /*
 type : POST REQUEST
@@ -34,25 +32,34 @@ query - params : none
 isProtected : false
 */
 
-router.post('/signup', async (req, res) => {
-    try {
-        const { firstName, lastName = '', email, password } = req.body
+router.post('/signup',
+    body('firstName').isLength({ min: 5 }),
+    body('email').isEmail(),
+    body('password').isAlphanumeric().isLength({ min: 7 })
+    , async (req, res) => {
 
-        //USE bcrypt to hash password
-        const salt = await bcrypt.genSalt(5)
-        const hashedPassword = await bcrypt.hash(password, salt)
+        const { errors } = validationResult(req)
 
-        const user = new User({ firstName, lastName, email, password: hashedPassword })
-        // console.log(hashedPassword)
+        if (errors.length > 0) return res.status(403).json({ errors, message: "BAD REQUEST" })
 
-        //save the user 
-        await user.save()
-        res.json({ user })
-    } catch (error) {
-        console.log(error.message)
-        res.status(500).json({ users: {} })
-    }
-})
+        try {
+            const { firstName, lastName = '', email, password } = req.body
+
+            //USE bcrypt to hash password
+            const salt = await bcrypt.genSalt(5)
+            const hashedPassword = await bcrypt.hash(password, salt)
+
+            const user = new User({ firstName, lastName, email, password: hashedPassword })
+            // console.log(hashedPassword)
+
+            //save the user 
+            await user.save()
+            res.status(200).json({ user })
+        } catch (error) {
+            console.log(error.message)
+            res.status(500).json({ users: {} })
+        }
+    })
 
 
 /*
@@ -70,7 +77,6 @@ router.post('/login', async (req, res) => {
         const user = await User.findOne({ email }) //authentication
         if (user) {                         // is authorizing
             const isVerified = await bcrypt.compare(password, user.password)
-            //bcrypt.compare() Asynchronously compares the given data (password) against the given hash.
 
             if (isVerified) {
                 const { _id, role } = user
