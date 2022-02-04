@@ -22,8 +22,6 @@ app.use("/api/v1/auth", authRoutes)//this takes care of our auth routes
 app.use("/api/v1/category", categoryRoutes)//this takes care of our category  routes
 app.use("/api/v1/product", productRoutes)//this takes care of our product  routes
 
-console.log("Hi")
-
 app.get('/', (req, res) => {
     res.send(`server running at ${port} heroku successfully`)
 })  //this is just to see server is running
