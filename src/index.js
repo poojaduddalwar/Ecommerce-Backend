@@ -24,6 +24,10 @@ app.use("/api/v1/product", productRoutes)//this takes care of our product  route
 
 console.log("Hi")
 
+app.get('/', (req, res) => {
+    res.send(`server running at ${port} heroku successfully`)
+})  //this is just to see server is running
+
 app.listen(port, (req, res) => {
     console.log(`Server listening at PORT ${port}`)
 })
