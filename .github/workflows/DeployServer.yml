@@ -21,5 +21,7 @@ jobs:
         run: git config --global user.email 'poojaduddalwar02@gmail.com'
       - name: add heroku remote
         run: git remote add heroku https://heroku:03b4bd45-69cb-4027-bf1d-2e5cf994f6d2@git .heroku.com/pooja-ecommerce-api.git
+      - name: Fetch repo
+        run: git fetch --unshallow
       - name: push to heroku remote
         run: git push heroku master --force
