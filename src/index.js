@@ -23,7 +23,7 @@ app.use("/api/v1/category", categoryRoutes)//this takes care of our category  ro
 app.use("/api/v1/product", productRoutes)//this takes care of our product  routes
 
 app.get('/', (req, res) => {
-    res.send(`server running at ${port} (Deployed)`)
+    res.send(`server running at ${port}`)
 })  //this is just to see server is running
 
 app.listen(port, (req, res) => {
