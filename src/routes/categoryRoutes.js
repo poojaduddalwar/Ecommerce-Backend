@@ -44,7 +44,7 @@ router.post('/add',
             res.status(200).json({ category, message: "Successfully added a category" })
 
         } catch (error) {
-            console.log(error.message)
+            // console.log(error.message)
             res.status(500).json({ category: null, message: "Error adding category" })
         }
     })
