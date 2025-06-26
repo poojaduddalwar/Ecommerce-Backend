@@ -1,14 +1,15 @@
 import express from 'express';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
 import { body, validationResult } from 'express-validator';
 import authMiddleware from '../middlewares/authMiddleware.js';
 import isAdmin from '../middlewares/isAdmin.js';
 import Product from '../services/mongodb/models/Product.js';
 import Order from '../services/mongodb/models/Order.js';
 import Cart from '../services/mongodb/models/Cart.js';
+import pkg from 'uuid';
 
+const { v4: uuidv4 } = pkg;
 const router = express.Router();
 
 // POST /api/v1/order/createOrder
