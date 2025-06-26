@@ -1,6 +1,8 @@
 import express from "express";
-import Category from "../services/mongodb/models/Category";
+import Category from "../services/mongodb/models/Category.js";
 import { body, validationResult } from "express-validator";
+import authMiddleware from "../middlewares/authMiddleware.js";
+import isAdmin from "../middlewares/isAdmin.js";
 
 const router = express.Router()
 
@@ -14,7 +16,7 @@ isProtected : false (public route)
 router.get('/all', async (req, res) => {
     try {
         const category = await Category.find({})
-        res.status(200).json({ category, message: "Successfully  fetched categories" })
+        res.status(200).json({ category, message: "Successfully fetched categories" })
     } catch (error) {
         console.log(error.message)
         res.status(500).json({ category: [], message: "Error fetching categories" })
@@ -28,26 +30,40 @@ query - params : none
 isProtected : private (admin route)
 */
 
-router.post('/add',
-    body('name').isLength({ min: 1 }),
-    body('description').isLength({ min: 10 })
-    , async (req, res) => {
-        const { errors } = validationResult(req)
+router.post(
+    "/add",
+    authMiddleware,
+    isAdmin,
+    [
+        body("name", "Category name is required").isLength({ min: 1 }),
+        body("description", "Description must be at least 10 characters").isLength({ min: 10 }),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
 
-        if (errors.length > 0) return res.status(403).json({ errors, message: "BAD REQUEST" })
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array(), message: "Validation failed" });
+        }
 
         try {
-            // const { name, description } = req.body
-            const category = new Category(req.body)
-            await category.save()
+            const { name, description } = req.body;
 
-            res.status(200).json({ category, message: "Successfully added a category" })
+            // Check if category with same name already exists (optional)
+            const existingCategory = await Category.findOne({ name });
+            if (existingCategory) {
+                return res.status(409).json({ message: "Category already exists" });
+            }
 
+            const category = new Category({ name, description });
+            await category.save();
+
+            res.status(201).json({ category, message: "Successfully added a category" });
         } catch (error) {
-            // console.log(error.message)
-            res.status(500).json({ category: null, message: "Error adding category" })
+            console.error(error.message);
+            res.status(500).json({ category: null, message: "Error adding category" });
         }
-    })
+    }
+);
 
 
 /*
@@ -57,20 +73,38 @@ query - params : none
 isProtected : private (admin route)
 */
 
-router.put('/update/:id'
-    , async (req, res) => {
-        const { id } = req.params
+router.put(
+    "/update/:id",
+    authMiddleware,
+    isAdmin,
+    [
+        body("name", "Category name must be at least 1 character").optional().isLength({ min: 1 }),
+        body("description", "Description must be at least 10 characters").optional().isLength({ min: 10 }),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array(), message: "Validation failed" });
+        }
+
+        const { id } = req.params;
 
         try {
-            const category = await Category.findOneAndUpdate({ _id: id }, req.body, { new: true })
+            const category = await Category.findByIdAndUpdate(id, req.body, { new: true });
 
-            res.status(200).json({ category, message: "Successfully updated a category" })
+            if (!category) {
+                return res.status(404).json({ category: null, message: "Category not found" });
+            }
 
+            res.status(200).json({ category, message: "Successfully updated the category" });
         } catch (error) {
-            console.log(error.message)
-            res.status(500).json({ category: null, message: "Error updating category" })
+            console.error(error.message);
+            res.status(500).json({ category: null, message: "Error updating category" });
         }
-    })
+    }
+);
+
 
 /*
 type : DELETE REQUEST
@@ -79,19 +113,26 @@ query - params : none
 isProtected : private (admin route)
 */
 
-router.delete('/delete/:id'
-    , async (req, res) => {
-        const { id } = req.params
+router.delete(
+    "/delete/:id",
+    authMiddleware,
+    isAdmin,
+    async (req, res) => {
+        const { id } = req.params;
 
         try {
-            const category = await Category.findByIdAndRemove(id)
+            const category = await Category.findByIdAndDelete(id);
 
-            res.status(200).json({ category, message: "Successfully deleted a category" })
+            if (!category) {
+                return res.status(404).json({ category: null, message: "Category not found" });
+            }
 
+            res.status(200).json({ category, message: "Successfully deleted the category" });
         } catch (error) {
-            console.log(error.message)
-            res.status(500).json({ category: null, message: "Error deleting category" })
+            console.error(error.message);
+            res.status(500).json({ category: null, message: "Error deleting category" });
         }
-    })
+    }
+);
 
 export default router

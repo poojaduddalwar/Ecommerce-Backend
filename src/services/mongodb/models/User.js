@@ -1,33 +1,45 @@
-import mongoose from 'mongoose';
+// import mongoose from 'mongoose';
 
-const UserSchema = new mongoose.Schema({
-    email: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    firstName: {
-        type: String,
-        required: true
-    },
-    lastName: {
-        type: String,
-        default: ''
-    },
-    password: {
-        type: String,
-        required: true
-    },
-    role: {
-        type: Number,
-        default: 0
-    }
-    //this role is imp in user 
-    //it means if it is admin user they'll have role 1 and if its a normal user they'll have role 0
-    //this is for role based authentication
-})
+// const UserSchema = new mongoose.Schema({
+//     email: {
+//         type: String,
+//         required: true,
+//         unique: true
+//     },
+//     firstName: {
+//         type: String,
+//         required: true
+//     },
+//     lastName: {
+//         type: String,
+//         default: ''
+//     },
+//     password: {
+//         type: String,
+//         required: true
+//     },
+//     role: {
+//         type: Number,
+//         default: 0
+//     }
+//     //this role is imp in user 
+//     //it means if it is admin user they'll have role 1 and if its a normal user they'll have role 0
+//     //this is for role based authentication
+// })
 
 
-const User = mongoose.model("User", UserSchema)
+// const User = mongoose.model("User", UserSchema)
 
-export default User
+// export default User
+
+// const mongoose = require("mongoose");
+import mongoose from "mongoose";
+
+const userSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    role: { type: String, enum: ["user", "admin"], default: "user" }
+}, { timestamps: true });
+
+export default mongoose.model("User", userSchema);
