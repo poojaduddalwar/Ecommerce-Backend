@@ -32,10 +32,10 @@ const startServer = async () => {
     try {
         await connectDB(); // Wait for DB connection
         app.listen(port, () => {
-            console.log(`✅ Server listening at PORT ${port}`);
+            console.log(`✅ Server listening at PORT: ${port}`);
         });
     } catch (err) {
-        console.error("❌ Failed to start server:", err.message);
+        console.error("❌ Failed to start the server:", err.message);
         process.exit(1); // Exit process if DB fails
     }
 };

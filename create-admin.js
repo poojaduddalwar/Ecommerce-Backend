@@ -1,10 +1,9 @@
 // create-admin.js
 
-import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-import connectDB from "./src/services/mongodb/connectDB.js"; // Make sure it has .js extension
-import User from "./src/services/mongodb/models/User.js";     // Also needs .js extension
+import connectDB from "./src/services/mongodb/connectDB.js"; 
+import User from "./src/services/mongodb/models/User.js";   
 
 dotenv.config();
 
