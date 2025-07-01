@@ -1,7 +1,3 @@
-Here’s a complete `README.md` file you can copy and paste into your GitHub repo for your **Ecommerce Backend** project:
-
----
-
 ```markdown
 # 🛍️ Ecommerce Backend API
 
