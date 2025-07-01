@@ -1,42 +1,47 @@
 // controllers/orderController.js
+import crypto from 'crypto';
 import Order from '../models/orderModel.js';
 import Product from '../models/productModel.js';
+import Cart from '../models/cartModel.js';
+import User from '../models/userModel.js';
 import OpenAI from 'openai';
 
-// Initialize OpenAI with API Key from .env
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const CF_SECRET_KEY = process.env.CF_SECRET_KEY;
 
-/**
- * Handle webhook from Cashfree after payment success
- * Cashfree will POST to this endpoint with order status and metadata
- */
 export const handleCashfreeWebhook = async (req, res) => {
   try {
+    const signature = req.headers['x-webhook-signature'];
+    const payload = JSON.stringify(req.body);
+    const expectedSignature = crypto.createHmac('sha256', CF_SECRET_KEY).update(payload).digest('base64');
+
+    if (signature !== expectedSignature) {
+      return res.status(401).json({ message: 'Invalid webhook signature' });
+    }
+
     const {
       order_id,
       order_status,
       payment_mode,
       order_amount,
       payment_time,
-      customer_details,
       order_meta,
     } = req.body;
 
-    // 🛡️ (Optional) Verify webhook signature via x-cf-signature header
-
-    // Proceed only if payment succeeded
     if (order_status !== 'PAID') {
       return res.status(400).json({ message: 'Payment not completed' });
     }
 
-    // Extract metadata from the order
     const { items, shippingAddress, userId } = order_meta;
-
     if (!items || !shippingAddress || !userId) {
       return res.status(400).json({ message: 'Incomplete order metadata' });
     }
 
-    // 🧠 Generate product descriptions for OpenAI summary
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     const productDetails = await Promise.all(
       items.map(async (item) => {
         const product = await Product.findById(item.product);
@@ -44,21 +49,14 @@ export const handleCashfreeWebhook = async (req, res) => {
       })
     );
 
-    // 📝 Compose the prompt
     const summaryPrompt = `
-Summarize the following order:
-
-Shipping to:
-${shippingAddress.fullName}, ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.country}.
-
+Customer ${user.email} shipping to ${shippingAddress.fullName}, ${shippingAddress.city}, ${shippingAddress.country}.
 Items:
 ${productDetails.join('\n')}
-
 Total: ₹${order_amount}
 Payment Method: ${payment_mode}
     `;
 
-    // 💬 Generate order summary using OpenAI
     const summaryResponse = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: [{ role: 'user', content: summaryPrompt }],
@@ -67,9 +65,8 @@ Payment Method: ${payment_mode}
 
     const orderSummary = summaryResponse.choices[0].message.content.trim();
 
-    // 🧾 Save the order
     const newOrder = new Order({
-      user: userId,
+      user: user._id,
       items,
       shippingAddress,
       totalAmount: order_amount,
@@ -82,6 +79,9 @@ Payment Method: ${payment_mode}
     });
 
     await newOrder.save();
+
+    // Delete cart after successful order
+    await Cart.deleteOne({ userId: user._id });
 
     return res.status(200).json({ success: true, message: 'Order created after payment', orderId: newOrder._id });
   } catch (error) {

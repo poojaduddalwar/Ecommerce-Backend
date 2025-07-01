@@ -12,7 +12,7 @@ query - params : none
 isProtected : true (admin can access this )
 */
 
-router.get('/users', async (req, res) => {
+router.get('/users', authMiddleware, isAdmin, async (req, res) => {
     try {
         const users = await User.find({})
         res.status(200).json({ users, message: "Successfully  fetched users" })

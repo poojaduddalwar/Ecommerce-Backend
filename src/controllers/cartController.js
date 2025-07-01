@@ -59,6 +59,9 @@ export const updateCart = async (req, res) => {
       const itemIndex = cart.items.findIndex((item) => item.product.equals(productId));
       if (itemIndex > -1) {
         cart.items[itemIndex].quantity = quantity;
+        const product = await Product.findById(productId);
+        if (product.stock < quantity) return res.status(400).json({ message: 'Insufficient stock' });
+        cart.items[itemIndex].quantity = quantity;
       } else {
         cart.items.push({ product: productId, quantity });
       }
