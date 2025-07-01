@@ -30,11 +30,12 @@ router.post(
 );
 
 // 💰 Cashfree Webhook - Also needs raw body
-router.post(
-  '/cashfree-webhook',
-  express.raw({ type: 'application/json' }),
-  handleCashfreeWebhook
-);
+// router.post(
+//   '/cashfree-webhook',
+//   express.raw({ type: 'application/json' }),
+//   handleCashfreeWebhook
+// );
+router.post('/cashfree-webhook', handleCashfreeWebhook);
 
 // 👤 Get Orders for Logged-in User
 router.get('/myOrders', authMiddleware, getMyOrders);

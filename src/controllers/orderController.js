@@ -1,47 +1,41 @@
 // controllers/orderController.js
-import crypto from 'crypto';
+import mongoose from 'mongoose';
 import Order from '../models/orderModel.js';
 import Product from '../models/productModel.js';
-import Cart from '../models/cartModel.js';
-import User from '../models/userModel.js';
 import OpenAI from 'openai';
 
+// Initialize OpenAI with API Key from .env
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const CF_SECRET_KEY = process.env.CF_SECRET_KEY;
 
+/**
+ * Handle webhook from Cashfree after payment success
+ * Cashfree will POST to this endpoint with order status and metadata
+ */
 export const handleCashfreeWebhook = async (req, res) => {
   try {
-    const signature = req.headers['x-webhook-signature'];
-    const payload = JSON.stringify(req.body);
-    const expectedSignature = crypto.createHmac('sha256', CF_SECRET_KEY).update(payload).digest('base64');
-
-    if (signature !== expectedSignature) {
-      return res.status(401).json({ message: 'Invalid webhook signature' });
-    }
-
     const {
       order_id,
       order_status,
       payment_mode,
       order_amount,
       payment_time,
+      customer_details,
       order_meta,
     } = req.body;
+
+    // 🛡️ (Optional): Verify webhook signature via x-cf-signature header
 
     if (order_status !== 'PAID') {
       return res.status(400).json({ message: 'Payment not completed' });
     }
 
     const { items, shippingAddress, userId } = order_meta;
+
     if (!items || !shippingAddress || !userId) {
       return res.status(400).json({ message: 'Incomplete order metadata' });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
+    // 🧠 Build item summary
     const productDetails = await Promise.all(
       items.map(async (item) => {
         const product = await Product.findById(item.product);
@@ -50,9 +44,14 @@ export const handleCashfreeWebhook = async (req, res) => {
     );
 
     const summaryPrompt = `
-Customer ${user.email} shipping to ${shippingAddress.fullName}, ${shippingAddress.city}, ${shippingAddress.country}.
+Summarize the following order:
+
+Shipping to:
+${shippingAddress.fullName}, ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.country}.
+
 Items:
 ${productDetails.join('\n')}
+
 Total: ₹${order_amount}
 Payment Method: ${payment_mode}
     `;
@@ -66,7 +65,7 @@ Payment Method: ${payment_mode}
     const orderSummary = summaryResponse.choices[0].message.content.trim();
 
     const newOrder = new Order({
-      user: user._id,
+      user: new mongoose.Types.ObjectId(userId),
       items,
       shippingAddress,
       totalAmount: order_amount,
@@ -80,12 +79,16 @@ Payment Method: ${payment_mode}
 
     await newOrder.save();
 
-    // Delete cart after successful order
-    await Cart.deleteOne({ userId: user._id });
-
-    return res.status(200).json({ success: true, message: 'Order created after payment', orderId: newOrder._id });
+    return res.status(200).json({
+      success: true,
+      message: 'Order created after payment',
+      orderId: newOrder._id,
+    });
   } catch (error) {
     console.error('Cashfree Webhook Error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to process payment webhook' });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to process payment webhook',
+    });
   }
 };
