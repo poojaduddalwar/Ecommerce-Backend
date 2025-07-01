@@ -34,14 +34,14 @@
     "mongoose": "^6.1.8",
     "openai": "^5.8.2",
     "razorpay": "^2.8.0",
-    "uuid": "^11.1.0"
-  },
-  "devDependencies": {
+    "uuid": "^11.1.0",
     "@babel/cli": "^7.27.2",
     "@babel/core": "^7.27.7",
     "@babel/node": "^7.16.8",
     "@babel/plugin-transform-runtime": "^7.27.4",
-    "@babel/preset-env": "^7.27.2",
+    "@babel/preset-env": "^7.27.2"
+  },
+  "devDependencies": {
     "nodemon": "^2.0.15"
   }
 }
