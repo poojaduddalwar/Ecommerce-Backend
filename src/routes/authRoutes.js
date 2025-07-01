@@ -29,12 +29,7 @@ query - params : none
 isProtected : false
 */
 
-router.post("/signup", [
-    body("name").isLength({ min: 2 }).withMessage("Full name is too short"),
-    body("email").isEmail().withMessage("Invalid email"),
-    body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters")
-], signup);
-
+router.post("/signup", signup);
 
 /*
 type : POST REQUEST
@@ -43,6 +38,6 @@ query - params : none
 isProtected : false
 */
 
-router.post("/login", login);
+router.post("/login", loginLimiter, login);
 
 export default router

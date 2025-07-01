@@ -1,63 +1,45 @@
-import User from "../services/mongodb/models/User.js";
+import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { validationResult } from "express-validator";
 
-
-export const signup = async (req, res) => {
-  console.log("we came to signup function");
-
-  const errors = validationResult(req);
-  if (!errors.isEmpty())
-    return res.status(400).json({ errors: errors.array(), message: "BAD REQUEST" });
-
-  const { name, email, password } = req.body;
-
+export const signup = async (req, res, next) => {
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists)
-      return res.status(409).json({ message: "User already exists" });
+    const { email, password } = req.body;
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: "User already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword });
+    const newUser = await User.create({ email, password: hashedPassword });
 
-    res.status(201).json({ message: "User registered successfully", user });
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: "Server error" });
+    const token = jwt.sign(
+      { _id: newUser._id, email: newUser.email, role: newUser.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.status(201).json({ token, user: newUser });
+  } catch (err) {
+    next(err);
   }
 };
 
-export const login = async (req, res) => {
-  const { email, password } = req.body;
-
+export const login = async (req, res, next) => {
   try {
+    const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user)
-      return res.status(404).json({ message: "User not found" });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
-      { _id: user._id, role: user.role },
+      { _id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "1h" }
     );
 
-    res.status(200).json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).json({ message: "Server error" });
+    res.status(200).json({ token, user });
+  } catch (err) {
+    next(err);
   }
 };
