@@ -10,7 +10,7 @@
     "start": "node dist/index.js"
   },
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "repository": {
     "type": "git",
@@ -23,10 +23,7 @@
   },
   "homepage": "https://github.com/poojaduddalwar/Ecommerce-Backend#readme",
   "dependencies": {
-    "@babel/cli": "^7.22.9",
-    "@babel/core": "^7.22.9",
     "@babel/plugin-transform-runtime": "^7.22.9",
-    "@babel/preset-env": "^7.22.9",
     "@babel/runtime": "^7.27.6",
     "axios": "^1.10.0",
     "bcryptjs": "^2.4.3",
@@ -46,6 +43,9 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.28.0",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
     "nodemon": "^2.0.15"
   }
 }
