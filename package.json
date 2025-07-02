@@ -5,9 +5,9 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon -w src --exec \"babel-node src/index.js\"",
-    "build": "babel src --out-dir dist --extensions \".js\" --source-maps --no-comments",
-    "start": "node dist/index.js"
+    "dev": "nodemon -w src --exec \"babel-node src\"",
+    "build": "babel src --out-dir dist",
+    "start": "npm install && npm run build && node dist/index.js"
   },
   "engines": {
     "node": "20.x"
