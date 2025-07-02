@@ -4,7 +4,7 @@ import Category from '../services/mongodb/models/Category.js';
 import { body, query, validationResult } from "express-validator";
 import authMiddleware from '../middlewares/authMiddleware.js';
 import isAdmin from '../middlewares/isAdmin.js';
-import { generateProductDescription } from '../utils/openaiUtils.js';
+import { generateProductDescription } from '../services/utils/openaiUtils.js';
 
 const router = express.Router();
 

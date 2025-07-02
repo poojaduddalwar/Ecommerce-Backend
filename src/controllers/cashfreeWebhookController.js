@@ -1,9 +1,9 @@
 // controllers/cashfreeWebhookController.js
 import crypto from 'crypto';
-import Order from '../models/orderModel.js';
-import Cart from '../models/cartModel.js';
-import User from '../models/userModel.js';
-import Product from '../models/productModel.js';
+import Order from '../services/mongodb/models/Order.js';
+import Cart from '../services/mongodb/models/Cart.js';
+import User from '../services/mongodb/models/User.js';
+import Product from '../services/mongodb/models/Product.js';
 import OpenAI from 'openai';
 
 const CF_SECRET_KEY = process.env.CF_SECRET_KEY;

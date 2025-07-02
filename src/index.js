@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import bodyParser from "body-parser";
 
 import connectDB from "./services/mongodb/connectDB.js";
 import errorHandler from "./middlewares/errorHandler.js";

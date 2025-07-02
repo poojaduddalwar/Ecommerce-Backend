@@ -1,4 +1,4 @@
-import Product from "../models/productModel.js";
+import Product from "../services/mongodb/models/Product.js";
 import { validationResult } from "express-validator";
 
 export const getAllProducts = async (req, res, next) => {

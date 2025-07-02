@@ -1,94 +1,69 @@
-// controllers/orderController.js
 import mongoose from 'mongoose';
-import Order from '../models/orderModel.js';
-import Product from '../models/productModel.js';
-import OpenAI from 'openai';
+import Order from '../services/mongodb/models/Order.js';
 
-// Initialize OpenAI with API Key from .env
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-/**
- * Handle webhook from Cashfree after payment success
- * Cashfree will POST to this endpoint with order status and metadata
- */
-export const handleCashfreeWebhook = async (req, res) => {
+// 👤 Fetch logged-in user's orders
+export const getMyOrders = async (req, res) => {
   try {
-    const {
-      order_id,
-      order_status,
-      payment_mode,
-      order_amount,
-      payment_time,
-      customer_details,
-      order_meta,
-    } = req.body;
+    const userId = req.user._id;
+    const orders = await Order.find({ user: userId }).sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, orders });
+  } catch (err) {
+    console.error('Get My Orders Error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch orders' });
+  }
+};
 
-    // 🛡️ (Optional): Verify webhook signature via x-cf-signature header
+// 👑 Admin: fetch all orders
+export const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .populate('user', 'name email');
+    return res.status(200).json({ success: true, orders });
+  } catch (err) {
+    console.error('Get All Orders Error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to fetch all orders' });
+  }
+};
 
-    if (order_status !== 'PAID') {
-      return res.status(400).json({ message: 'Payment not completed' });
+// 🚚 Admin: update an order's status
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    order.status = status;
+    if (status === 'Delivered') order.deliveredAt = new Date();
+
+    await order.save();
+    return res.status(200).json({ success: true, order });
+  } catch (err) {
+    console.error('Update Order Status Error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to update status' });
+  }
+};
+
+// ❌ Cancel an order (only if still pending)
+export const cancelOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    if (order.status !== 'Pending') {
+      return res.status(400).json({ success: false, message: 'Only pending orders can be cancelled' });
     }
 
-    const { items, shippingAddress, userId } = order_meta;
+    order.status = 'Cancelled';
+    order.cancelledAt = new Date();
+    await order.save();
 
-    if (!items || !shippingAddress || !userId) {
-      return res.status(400).json({ message: 'Incomplete order metadata' });
-    }
-
-    // 🧠 Build item summary
-    const productDetails = await Promise.all(
-      items.map(async (item) => {
-        const product = await Product.findById(item.product);
-        return `- ${product.name} (x${item.quantity})`;
-      })
-    );
-
-    const summaryPrompt = `
-Summarize the following order:
-
-Shipping to:
-${shippingAddress.fullName}, ${shippingAddress.address}, ${shippingAddress.city}, ${shippingAddress.country}.
-
-Items:
-${productDetails.join('\n')}
-
-Total: ₹${order_amount}
-Payment Method: ${payment_mode}
-    `;
-
-    const summaryResponse = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: summaryPrompt }],
-      max_tokens: 150,
-    });
-
-    const orderSummary = summaryResponse.choices[0].message.content.trim();
-
-    const newOrder = new Order({
-      user: new mongoose.Types.ObjectId(userId),
-      items,
-      shippingAddress,
-      totalAmount: order_amount,
-      paymentMethod: payment_mode,
-      paymentStatus: 'Paid',
-      paidAt: payment_time ? new Date(payment_time) : new Date(),
-      cashfreeOrderId: order_id,
-      status: 'Pending',
-      summary: orderSummary,
-    });
-
-    await newOrder.save();
-
-    return res.status(200).json({
-      success: true,
-      message: 'Order created after payment',
-      orderId: newOrder._id,
-    });
-  } catch (error) {
-    console.error('Cashfree Webhook Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to process payment webhook',
-    });
+    return res.status(200).json({ success: true, message: 'Order cancelled', order });
+  } catch (err) {
+    console.error('Cancel Order Error:', err);
+    return res.status(500).json({ success: false, message: 'Failed to cancel order' });
   }
 };

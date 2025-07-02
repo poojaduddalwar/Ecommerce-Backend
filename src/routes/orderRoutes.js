@@ -1,52 +1,41 @@
-// routes/orderRoutes.js
 import express from 'express';
+import authMiddleware from '../middlewares/authMiddleware.js';
+import isAdmin from '../middlewares/isAdmin.js';
+
+// Cashfree payment controllers
+import { initiatePayment } from '../controllers/cashfreeController.js';
+import { handleCashfreeWebhook } from '../controllers/cashfreeWebhookController.js';
+
+// Order management controllers
 import {
-  createOrder,
-  verifyPayment,
   getMyOrders,
   getAllOrders,
   updateOrderStatus,
   cancelOrder,
-  razorpayWebhook,
-  handleCashfreeWebhook
 } from '../controllers/orderController.js';
-
-import { authMiddleware } from '../middlewares/authMiddleware.js';
-import { isAdmin } from '../middlewares/isAdmin.js';
 
 const router = express.Router();
 
-// 📦 Create Razorpay Order
-router.post('/createOrder', authMiddleware, createOrder);
+// 💳 Create payment session via Cashfree
+router.post('/create-order', authMiddleware, initiatePayment);
 
-// ✅ Verify Razorpay Payment
-router.post('/verify', authMiddleware, verifyPayment);
-
-// 🔁 Razorpay Webhook - Needs raw body
+// 🔔 Cashfree webhook endpoint (raw body)
 router.post(
-  '/webhook',
+  '/cashfree-webhook',
   express.raw({ type: 'application/json' }),
-  razorpayWebhook
+  handleCashfreeWebhook
 );
 
-// 💰 Cashfree Webhook - Also needs raw body
-// router.post(
-//   '/cashfree-webhook',
-//   express.raw({ type: 'application/json' }),
-//   handleCashfreeWebhook
-// );
-router.post('/cashfree-webhook', handleCashfreeWebhook);
+// 👤 Get orders for logged-in user
+router.get('/my-orders', authMiddleware, getMyOrders);
 
-// 👤 Get Orders for Logged-in User
-router.get('/myOrders', authMiddleware, getMyOrders);
+// 👑 Admin: get all orders
+router.get('/all-orders', authMiddleware, isAdmin, getAllOrders);
 
-// 👑 Admin: Get All Orders
-router.get('/all', authMiddleware, isAdmin, getAllOrders);
-
-// 🛠️ Admin: Update Order Status
+// 🚚 Admin: update order status
 router.put('/status/:orderId', authMiddleware, isAdmin, updateOrderStatus);
 
-// ❌ Cancel Order
+// ❌ Cancel an order
 router.post('/cancel/:orderId', authMiddleware, cancelOrder);
 
 export default router;

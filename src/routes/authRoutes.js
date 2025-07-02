@@ -1,7 +1,9 @@
 import express from "express";
 import { signup, login } from "../controllers/authController.js";
 import User from "../services/mongodb/models/User.js";
-import { body } from "express-validator";
+import authMiddleware from '../middlewares/authMiddleware.js';
+import isAdmin from '../middlewares/isAdmin.js';
+import loginLimiter from '../middlewares/rateLimiter.js';
 
 const router = express.Router()
 
